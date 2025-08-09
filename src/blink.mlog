@@ -1,0 +1,4 @@
+write 1 gpio 25
+wait 0.5
+write 0 gpio 25
+wait 0.5

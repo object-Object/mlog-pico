@@ -5,13 +5,13 @@ extern crate alloc;
 
 use core::{cell::RefCell, mem::MaybeUninit, time::Duration};
 
-use alloc::{borrow::Cow, boxed::Box, rc::Rc, vec};
+use alloc::{borrow::Cow, boxed::Box, rc::Rc};
 use cortex_m::delay::Delay;
 use embedded_alloc::TlsfHeap as Heap;
 use embedded_hal::digital::OutputPin;
 use mindustry_rs::{
     logic::{
-        ast::{Instruction, Statement, Value},
+        deserialize_ast,
         vm::{Building, BuildingData, LVar, LogicVMBuilder, ProcessorBuilder},
     },
     types::{PackedPoint2, content},
@@ -110,49 +110,19 @@ fn main() -> ! {
 
     let mut builder = LogicVMBuilder::new();
     builder.add_buildings([
-        Building {
-            block: &content::blocks::AIR, // TODO
-            position: PackedPoint2 { x: 0, y: 0 },
-            data: Rc::new(RefCell::new(BuildingData::Processor(
-                ProcessorBuilder {
-                    ipt: 1.,
-                    privileged: false,
-                    position: PackedPoint2 { x: 0, y: 0 },
-                    code: Box::new([
-                        Statement::Instruction(
-                            Instruction::Write {
-                                value: Value::Number(1.),
-                                target: Value::Variable("gpio".into()),
-                                address: Value::Number(25.),
-                            },
-                            vec![],
-                        ),
-                        Statement::Instruction(
-                            Instruction::Wait {
-                                value: Value::Number(0.5),
-                            },
-                            vec![],
-                        ),
-                        Statement::Instruction(
-                            Instruction::Write {
-                                value: Value::Number(0.),
-                                target: Value::Variable("gpio".into()),
-                                address: Value::Number(25.),
-                            },
-                            vec![],
-                        ),
-                        Statement::Instruction(
-                            Instruction::Wait {
-                                value: Value::Number(0.5),
-                            },
-                            vec![],
-                        ),
-                    ]),
-                    links: &[],
-                }
-                .build(&builder),
-            ))),
-        },
+        Building::from_processor_builder(
+            &content::blocks::AIR, // TODO
+            PackedPoint2 { x: 0, y: 0 },
+            ProcessorBuilder {
+                ipt: 1.,
+                privileged: false,
+                code: deserialize_ast(include_bytes!(env!("MLOG:src/blink.mlog")))
+                    .unwrap()
+                    .into_boxed_slice(),
+                links: &[],
+            },
+            &builder,
+        ),
         gpio_build,
     ]);
 
