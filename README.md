@@ -1,0 +1,12 @@
+# mlog-pico
+
+Mindustry logic on a Raspberry Pi Pico.
+
+## Running
+
+https://github.com/rp-rs/rp-hal-boards/tree/5135e3dafe3e69b112e6d2d72cfb1856a7679b82/boards/rp-pico#general-instructions
+
+```
+cargo install elf2uf2-rs
+cargo run --release
+```
