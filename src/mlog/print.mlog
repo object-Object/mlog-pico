@@ -1,0 +1,7 @@
+    print "hello world!\ntype: "
+    sensor type @this @type
+    print type
+    printflush uart0
+
+loop:
+    jump loop always

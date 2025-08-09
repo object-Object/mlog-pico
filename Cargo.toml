@@ -18,3 +18,7 @@ widestring = { version = "1.2.0", default-features = false }
 [build-dependencies]
 glob = "0.3.2"
 mindustry-rs = { path = "../mindustry-rs" }
+
+[features]
+blink = []
+print = []
