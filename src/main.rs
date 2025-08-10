@@ -172,6 +172,7 @@ fn main() -> ! {
                         y: 0,
                     },
                 ],
+                instruction_hook: None,
             },
             &builder,
         ),

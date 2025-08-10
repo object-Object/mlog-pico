@@ -288,6 +288,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f578e8e2c440e7297e008bb5486a3a8a194775224bbc23729b0dbdfaeebf162e"
 
 [[package]]
+name = "derivative"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -699,12 +710,13 @@ checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
 [[package]]
 name = "mindustry-rs"
 version = "0.1.0"
-source = "git+https://github.com/object-Object/mindustry-rs?rev=0a44b19ece#0a44b19ecefc9a1f337b51bb0989000d3513d663"
+source = "git+https://github.com/object-Object/mindustry-rs?rev=042316e3cb#042316e3cb292cc027c7b727202b7a9e4e3aa592"
 dependencies = [
  "base64 0.22.1",
  "binrw",
  "cesu8",
  "csv",
+ "derivative",
  "enum_dispatch",
  "flate2",
  "hashbrown",
