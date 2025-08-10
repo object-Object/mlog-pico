@@ -11,3 +11,7 @@ cargo install elf2uf2-rs
 cargo run --release --feature blink
 cargo run --release --feature print
 ```
+
+## VID/PID
+
+The default VID/PID used by this repository is one of the the [pid.codes](https://pid.codes) Test PIDs. See https://pid.codes/1209/0001/ for more info.

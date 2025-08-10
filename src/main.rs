@@ -3,9 +3,16 @@
 
 extern crate alloc;
 
-use core::{cell::RefCell, mem::MaybeUninit, time::Duration};
+mod custom_content;
 
 use alloc::{borrow::Cow, boxed::Box, rc::Rc};
+use core::{cell::RefCell, mem::MaybeUninit, time::Duration};
+use usb_device::{
+    bus::UsbBusAllocator,
+    device::{StringDescriptors, UsbDeviceBuilder, UsbVidPid},
+};
+use usbd_serial::{SerialPort, embedded_io::Write};
+
 use cortex_m::delay::Delay;
 use embedded_alloc::TlsfHeap as Heap;
 use embedded_hal::digital::OutputPin;
@@ -24,6 +31,7 @@ use rp_pico::{
         fugit::RateExtU32,
         pac::{CorePeripherals, Peripherals},
         uart::{DataBits, StopBits, UartConfig, UartPeripheral},
+        usb::UsbBus,
     },
 };
 use widestring::{U16String, u16str};
@@ -37,11 +45,14 @@ macro_rules! include_ast {
     ($name:expr) => {
         #[cfg(feature = $name)]
         const AST_BYTES: &[u8] = include_bytes!(env!(concat!("MLOG:src/mlog/", $name, ".mlog")));
+        #[cfg(feature = $name)]
+        const PROGRAM_NAME: &str = $name;
     };
 }
 
 include_ast!("blink");
 include_ast!("print");
+include_ast!("print_usb");
 
 #[entry]
 fn main() -> ! {
@@ -82,9 +93,6 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let led_pin_id = pins.led.id().num as usize;
-    let mut led_pin = pins.led.into_push_pull_output();
-
     let uart0 = UartPeripheral::new(
         pac.UART0,
         (pins.gpio0.into_function(), pins.gpio1.into_function()),
@@ -96,25 +104,47 @@ fn main() -> ! {
     )
     .unwrap();
 
-    // check if we panicked on the previous boot
-
+    // as soon as the UART is up, check if we panicked on the previous boot
     if let Some(msg) = get_panic_message_bytes() {
         uart0.write_full_blocking(msg);
         delay.delay_ms(1000);
         hal::reset();
     }
 
+    let led_pin_id = pins.led.id().num as usize;
+    let mut led_pin = pins.led.into_push_pull_output();
+
+    let usb_bus = UsbBusAllocator::new(UsbBus::new(
+        pac.USBCTRL_REGS,
+        pac.USBCTRL_DPRAM,
+        clocks.usb_clock,
+        true,
+        &mut pac.RESETS,
+    ));
+
+    let mut serial = SerialPort::new(&usb_bus);
+
+    // https://pid.codes/1209/0001/
+    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x1209, 0x0001))
+        .strings(&[StringDescriptors::default()
+            .manufacturer("object-Object")
+            .product("mlog-pico")
+            .serial_number(PROGRAM_NAME)])
+        .unwrap()
+        .device_class(2) // https://www.usb.org/defined-class-codes
+        .build();
+
     // build VM
-
-    let gpio_data = Rc::new(RefCell::new(BuildingData::Memory(Box::new([0.; 30]))));
-
-    let uart0_data = Rc::new(RefCell::new(BuildingData::Message(U16String::new())));
 
     let mut globals = LVar::create_global_constants();
     globals.extend([
         // GPIO pin constants
         (u16str!("@pinLED").into(), LVar::Constant(led_pin_id.into())),
     ]);
+
+    let gpio_data = Rc::new(RefCell::new(BuildingData::Memory(Box::new([0.; 30]))));
+    let uart0_data = Rc::new(RefCell::new(BuildingData::Message(U16String::new())));
+    let serial_data = Rc::new(RefCell::new(BuildingData::Message(U16String::new())));
 
     let mut builder = LogicVMBuilder::new();
     builder.add_buildings([
@@ -136,6 +166,11 @@ fn main() -> ! {
                         x: 2,
                         y: 0,
                     },
+                    ProcessorLinkConfig {
+                        name: "serial".into(),
+                        x: 3,
+                        y: 0,
+                    },
                 ],
             },
             &builder,
@@ -149,6 +184,11 @@ fn main() -> ! {
             block: &custom_content::UART,
             position: PackedPoint2 { x: 2, y: 0 },
             data: uart0_data.clone(),
+        },
+        Building {
+            block: &custom_content::SERIAL,
+            position: PackedPoint2 { x: 3, y: 0 },
+            data: serial_data.clone(),
         },
     ]);
     let vm = builder.build_with_globals(Cow::Owned(globals)).unwrap();
@@ -179,39 +219,17 @@ fn main() -> ! {
             }
             message.clear();
         }
+
+        if let BuildingData::Message(message) = &mut *serial_data.borrow_mut()
+            && !message.is_empty()
+        {
+            let mut buf = [0; 4];
+            for c in message.chars_lossy() {
+                serial.write_all(c.encode_utf8(&mut buf).as_bytes()).ok();
+            }
+            message.clear();
+        }
+
+        usb_dev.poll(&mut [&mut serial]);
     }
-}
-
-mod custom_content {
-    use mindustry_rs::{multistr, types::content::Block};
-
-    static DEFAULT: Block = Block {
-        name: multistr!(""),
-        id: -1,
-        logic_id: -1,
-        size: 1,
-        legacy: false,
-        range: 0.,
-        item_capacity: 0,
-        liquid_capacity: 0.,
-    };
-
-    pub static PROCESSOR: Block = Block {
-        name: multistr!("pico-processor"),
-        id: -1,
-        range: f64::MAX,
-        ..DEFAULT
-    };
-
-    pub static GPIO: Block = Block {
-        name: multistr!("gpio"),
-        id: -2,
-        ..DEFAULT
-    };
-
-    pub static UART: Block = Block {
-        name: multistr!("uart"),
-        id: -3,
-        ..DEFAULT
-    };
 }

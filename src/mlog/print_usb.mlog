@@ -1,7 +1,12 @@
+    write 1 gpio @pinLED
+    wait 1
+
     print "hello world!\ntype: {0}\n"
     sensor type @this @type
     format type
-    printflush uart0
+    printflush serial
+
+    write 0 gpio @pinLED
 
 loop:
     jump loop always
