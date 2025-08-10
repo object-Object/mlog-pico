@@ -1,3 +1,7 @@
+[workspace.dependencies]
+mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "0a44b19ece", default-features = false }
+# mindustry-rs = { path = "../mindustry-rs" }
+
 [package]
 name = "mlog-pico"
 version = "0.1.0"
@@ -8,7 +12,7 @@ cortex-m = "0.7.7"
 cortex-m-rt = "0.7.5"
 embedded-alloc = "0.6.0"
 embedded-hal = "1.0.0"
-mindustry-rs = { path = "../mindustry-rs", default-features = false, features = ["no_std", "serde_alloc"] }
+mindustry-rs = { workspace = true, features = ["no_std", "serde_alloc"] }
 panic-persist = "0.3.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }
 rp-pico = "0.9.0"
@@ -17,7 +21,7 @@ widestring = { version = "1.2.0", default-features = false }
 
 [build-dependencies]
 glob = "0.3.2"
-mindustry-rs = { path = "../mindustry-rs" }
+mindustry-rs = { workspace = true, features = ["std"] }
 
 [features]
 blink = []
