@@ -44,7 +44,7 @@ static HEAP: Heap = Heap::empty();
 macro_rules! include_ast {
     ($name:expr) => {
         #[cfg(feature = $name)]
-        const AST_BYTES: &[u8] = include_bytes!(env!(concat!("MLOG:src/mlog/", $name, ".mlog")));
+        const AST_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/mlog/", $name, ".bin"));
         #[cfg(feature = $name)]
         const PROGRAM_NAME: &str = $name;
     };
