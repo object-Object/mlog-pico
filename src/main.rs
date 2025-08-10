@@ -6,16 +6,23 @@ extern crate alloc;
 mod custom_content;
 
 use alloc::{borrow::Cow, boxed::Box, rc::Rc};
-use core::{cell::RefCell, mem::MaybeUninit, time::Duration};
-use usb_device::{
-    bus::UsbBusAllocator,
-    device::{StringDescriptors, UsbDeviceBuilder, UsbVidPid},
-};
-use usbd_serial::{SerialPort, embedded_io::Write};
+use core::{cell::RefCell, mem::MaybeUninit};
 
-use cortex_m::delay::Delay;
+use embassy_executor::Spawner;
+use embassy_futures::yield_now;
+use embassy_rp::{
+    bind_interrupts, gpio,
+    peripherals::USB,
+    uart::{self, Uart},
+    usb,
+};
+use embassy_time::{Instant, Timer};
+use embassy_usb::{
+    UsbDevice,
+    class::cdc_acm::{self, CdcAcmClass},
+};
 use embedded_alloc::TlsfHeap as Heap;
-use embedded_hal::digital::OutputPin;
+use embedded_io_async::Write;
 use mindustry_rs::{
     logic::{
         deserialize_ast,
@@ -24,22 +31,7 @@ use mindustry_rs::{
     types::{PackedPoint2, ProcessorLinkConfig},
 };
 use panic_persist::get_panic_message_bytes;
-use rp_pico::{
-    Pins, entry,
-    hal::{
-        self, Clock, Sio, Timer, Watchdog,
-        fugit::RateExtU32,
-        pac::{CorePeripherals, Peripherals},
-        uart::{DataBits, StopBits, UartConfig, UartPeripheral},
-        usb::UsbBus,
-    },
-};
 use widestring::{U16String, u16str};
-
-const HEAP_SIZE: usize = 64 * 1024;
-
-#[global_allocator]
-static HEAP: Heap = Heap::empty();
 
 macro_rules! include_ast {
     ($name:expr) => {
@@ -54,92 +46,83 @@ include_ast!("blink");
 include_ast!("print");
 include_ast!("print_usb");
 
-#[entry]
-fn main() -> ! {
+const HEAP_SIZE: usize = 64 * 1024;
+
+#[global_allocator]
+static HEAP: Heap = Heap::empty();
+
+bind_interrupts!(struct Irqs {
+    USBCTRL_IRQ => usb::InterruptHandler<USB>;
+});
+
+const MAX_USB_PACKET_SIZE: usize = 64;
+
+#[embassy_executor::task]
+async fn usb_task(mut usb: UsbDevice<'static, usb::Driver<'static, USB>>) {
+    usb.run().await;
+}
+
+#[embassy_executor::main]
+async fn main(spawner: Spawner) {
     // init heap
     {
         static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
-        unsafe { HEAP.init(&raw mut HEAP_MEM as usize, HEAP_SIZE) }
+        unsafe { HEAP.init(&raw mut HEAP_MEM as usize, HEAP_SIZE) };
     }
 
     // init peripherals
 
-    let mut pac = Peripherals::take().unwrap();
-    let core = CorePeripherals::take().unwrap();
+    let p = embassy_rp::init(Default::default());
 
-    let mut watchdog = Watchdog::new(pac.WATCHDOG);
-
-    let clocks = hal::clocks::init_clocks_and_plls(
-        rp_pico::XOSC_CRYSTAL_FREQ,
-        pac.XOSC,
-        pac.CLOCKS,
-        pac.PLL_SYS,
-        pac.PLL_USB,
-        &mut pac.RESETS,
-        &mut watchdog,
-    )
-    .unwrap();
-
-    let timer = Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
-
-    let mut delay = Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
-
-    let sio = Sio::new(pac.SIO);
-
-    let pins = Pins::new(
-        pac.IO_BANK0,
-        pac.PADS_BANK0,
-        sio.gpio_bank0,
-        &mut pac.RESETS,
-    );
-
-    let uart0 = UartPeripheral::new(
-        pac.UART0,
-        (pins.gpio0.into_function(), pins.gpio1.into_function()),
-        &mut pac.RESETS,
-    )
-    .enable(
-        UartConfig::new(115_200.Hz(), DataBits::Eight, None, StopBits::One),
-        clocks.peripheral_clock.freq(),
-    )
-    .unwrap();
+    let uart_config = uart::Config::default();
+    let mut uart0 =
+        Uart::new_with_rtscts_blocking(p.UART0, p.PIN_0, p.PIN_1, p.PIN_3, p.PIN_2, uart_config);
 
     // as soon as the UART is up, check if we panicked on the previous boot
     if let Some(msg) = get_panic_message_bytes() {
-        uart0.write_full_blocking(msg);
-        delay.delay_ms(1000);
-        hal::reset();
+        uart0.blocking_write(msg).unwrap();
+        Timer::after_secs(1).await;
+        cortex_m::peripheral::SCB::sys_reset();
     }
 
-    let led_pin_id = pins.led.id().num as usize;
-    let mut led_pin = pins.led.into_push_pull_output();
+    let mut led = gpio::Output::new(p.PIN_25, gpio::Level::Low);
 
-    let usb_bus = UsbBusAllocator::new(UsbBus::new(
-        pac.USBCTRL_REGS,
-        pac.USBCTRL_DPRAM,
-        clocks.usb_clock,
-        true,
-        &mut pac.RESETS,
-    ));
+    // set up USB
 
-    let mut serial = SerialPort::new(&usb_bus);
+    let usb_driver = usb::Driver::new(p.USB, Irqs);
 
     // https://pid.codes/1209/0001/
-    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x1209, 0x0001))
-        .strings(&[StringDescriptors::default()
-            .manufacturer("object-Object")
-            .product("mlog-pico")
-            .serial_number(PROGRAM_NAME)])
-        .unwrap()
-        .device_class(2) // https://www.usb.org/defined-class-codes
-        .build();
+    let mut usb_config = embassy_usb::Config::new(0x1209, 0x0001);
+    usb_config.manufacturer = Some("object-Object");
+    usb_config.product = Some("mlog-pico");
+    usb_config.serial_number = Some(PROGRAM_NAME);
+
+    let mut usb_builder = embassy_usb::Builder::new(
+        usb_driver,
+        usb_config,
+        leak([0; 256]),
+        leak([0; 256]),
+        &mut [],
+        leak([0; 64]),
+    );
+
+    let (mut usb_sender, _) = CdcAcmClass::new(
+        &mut usb_builder,
+        leak(cdc_acm::State::new()),
+        MAX_USB_PACKET_SIZE as u16,
+    )
+    .split();
+
+    let usb = usb_builder.build();
+
+    spawner.must_spawn(usb_task(usb));
 
     // build VM
 
     let mut globals = LVar::create_global_constants();
     globals.extend([
         // GPIO pin constants
-        (u16str!("@pinLED").into(), LVar::Constant(led_pin_id.into())),
+        (u16str!("@pinLED").into(), LVar::Constant(25.into())),
     ]);
 
     let gpio_data = Rc::new(RefCell::new(BuildingData::Memory(Box::new([0.; 30]))));
@@ -196,41 +179,56 @@ fn main() -> ! {
 
     // run!
 
-    let start = timer.get_counter();
-    loop {
-        vm.do_tick_with_delta(
-            Duration::from_micros((timer.get_counter() - start).to_micros()),
-            1.0,
-        );
+    let mut usb_connected = false;
 
+    let start = Instant::now();
+    loop {
+        vm.do_tick_with_delta(start.elapsed().into(), 1.0);
+
+        // GPIO outputs
         if let BuildingData::Memory(memory) = &*gpio_data.borrow() {
-            if memory[led_pin_id] == 0. {
-                led_pin.set_low().unwrap();
-            } else {
-                led_pin.set_high().unwrap();
-            }
+            led.set_level((memory[25] != 0.).into());
         }
 
+        // printflush uart0
         if let BuildingData::Message(message) = &mut *uart0_data.borrow_mut()
             && !message.is_empty()
         {
             let mut buf = [0; 4];
             for c in message.chars_lossy() {
-                uart0.write_full_blocking(c.encode_utf8(&mut buf).as_bytes());
+                uart0
+                    .blocking_write(c.encode_utf8(&mut buf).as_bytes())
+                    .unwrap();
             }
             message.clear();
         }
 
-        if let BuildingData::Message(message) = &mut *serial_data.borrow_mut()
+        // printflush serial
+        let message = if let BuildingData::Message(message) = &mut *serial_data.borrow_mut()
             && !message.is_empty()
         {
-            let mut buf = [0; 4];
-            for c in message.chars_lossy() {
-                serial.write_all(c.encode_utf8(&mut buf).as_bytes()).ok();
-            }
+            let m = message.to_string_lossy();
             message.clear();
+            Some(m)
+        } else {
+            None
+        };
+        if let Some(message) = message {
+            if !usb_connected {
+                usb_sender.wait_connection().await;
+                usb_connected = true;
+            }
+            usb_sender.write_all(message.as_bytes()).await.unwrap();
+            if message.len() % MAX_USB_PACKET_SIZE == 0 {
+                usb_sender.write_packet(&[]).await.unwrap();
+            }
         }
 
-        usb_dev.poll(&mut [&mut serial]);
+        // let other threads do things before we continue
+        yield_now().await;
     }
+}
+
+fn leak<T>(value: T) -> &'static mut T {
+    Box::leak(Box::new(value))
 }

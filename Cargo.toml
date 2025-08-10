@@ -11,15 +11,20 @@ rust-version = "1.88"
 [dependencies]
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7.5"
+embassy-executor = { version = "0.7.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt"] }
+embassy-futures = "0.1.1"
+embassy-rp = { version = "0.7.0", features = ["critical-section-impl", "time-driver"] }
+embassy-time = "0.4.0"
+embassy-usb = "0.5.0"
 embedded-alloc = "0.6.0"
 embedded-hal = "1.0.0"
+embedded-io = { version = "0.6.1", features = ["alloc"] }
+embedded-io-async = { version = "0.6.1", features = ["alloc"] }
+log = "0.4.27"
 mindustry-rs = { workspace = true, features = ["no_std", "serde_alloc"] }
 panic-persist = "0.3.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }
-rp-pico = "0.9.0"
 spin = { version = "0.9.8", default-features = false, features = ["portable_atomic"] }
-usb-device = "0.3.2"
-usbd-serial = "0.2.2"
 widestring = { version = "1.2.0", default-features = false }
 
 [build-dependencies]
@@ -27,6 +32,16 @@ glob = "0.3.2"
 mindustry-rs = { workspace = true, features = ["std"] }
 
 [features]
+default = ["pico1"]
+
+pico1 = ["embassy-rp/rp2040"]
+pico2 = ["embassy-rp/rp235xa"]
+
 blink = []
 print = []
 print_usb = []
+
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
