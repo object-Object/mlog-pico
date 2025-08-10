@@ -6,6 +6,7 @@ mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "0
 name = "mlog-pico"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.88"
 
 [dependencies]
 cortex-m = "0.7.7"
