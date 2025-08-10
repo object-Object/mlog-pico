@@ -8,8 +8,9 @@ https://github.com/rp-rs/rp-hal-boards/tree/5135e3dafe3e69b112e6d2d72cfb1856a767
 
 ```
 cargo install elf2uf2-rs
-cargo run --release --feature blink
-cargo run --release --feature print
+cargo run --release --features blink
+cargo run --release --features print
+cargo run --release --features print_usb
 ```
 
 ## VID/PID
