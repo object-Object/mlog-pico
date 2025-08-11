@@ -1,6 +1,6 @@
 [workspace.dependencies]
-mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "042316e3cb", default-features = false }
-# mindustry-rs = { path = "../mindustry-rs" }
+mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "a97ff5ef3b", default-features = false }
+# mindustry-rs = { path = "../mindustry-rs", default-features = false }
 
 [package]
 name = "mlog-pico"
@@ -11,15 +11,16 @@ rust-version = "1.88"
 [dependencies]
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7.5"
-embassy-executor = { version = "0.7.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt"] }
+embassy-executor = { version = "=0.7.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt"] }
 embassy-futures = "0.1.1"
-embassy-rp = { version = "0.7.0", features = ["critical-section-impl", "time-driver"] }
+embassy-rp = { version = "0.6.0", features = ["critical-section-impl", "time-driver"] }
 embassy-time = "0.4.0"
 embassy-usb = "0.5.0"
 embedded-alloc = "0.6.0"
 embedded-hal = "1.0.0"
 embedded-io = { version = "0.6.1", features = ["alloc"] }
 embedded-io-async = { version = "0.6.1", features = ["alloc"] }
+heapless = { version = "0.8.0", features = ["portable-atomic"] }
 log = "0.4.27"
 mindustry-rs = { workspace = true, features = ["no_std", "serde_alloc"] }
 panic-persist = "0.3.0"

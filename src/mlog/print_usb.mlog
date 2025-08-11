@@ -4,4 +4,22 @@
     printflush serial
 
 loop:
+    wait 1e-5
+    sensor n serial @bufferSize
+    jump loop equal n 0
+
+    # whenever the host sends a message, echo it in uppercase
+read:
+    read char serial 0
+    
+    jump read__not_lowercase lessThan char 97 # a
+    jump read__not_lowercase greaterThan char 122 # z
+    op sub char char 32 # A - a
+read__not_lowercase:
+
+    printchar char
+    op sub n n 1
+    jump read greaterThan n 0
+
+    printflush serial
     jump loop always

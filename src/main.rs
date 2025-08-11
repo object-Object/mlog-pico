@@ -3,17 +3,19 @@
 
 extern crate alloc;
 
+mod buildings;
 mod custom_content;
 
-use alloc::{borrow::Cow, boxed::Box, rc::Rc};
-use core::{cell::RefCell, mem::MaybeUninit};
+use alloc::{borrow::Cow, boxed::Box};
+use core::mem::MaybeUninit;
 
 use embassy_executor::Spawner;
 use embassy_futures::yield_now;
 use embassy_rp::{
-    bind_interrupts, gpio,
-    peripherals::USB,
-    uart::{self, Uart},
+    bind_interrupts,
+    gpio::{self, Pin},
+    peripherals::{UART0, USB},
+    uart::{self, BufferedUart},
     usb,
 };
 use embassy_time::{Instant, Timer};
@@ -26,12 +28,14 @@ use embedded_io_async::Write;
 use mindustry_rs::{
     logic::{
         deserialize_ast,
-        vm::{Building, BuildingData, LVar, LogicVMBuilder, ProcessorBuilder},
+        vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder},
     },
     types::{PackedPoint2, ProcessorLinkConfig},
 };
 use panic_persist::get_panic_message_bytes;
-use widestring::{U16String, u16str};
+use widestring::u16str;
+
+use self::buildings::{GpioData, SerialData, UartData, gpio_data_pin};
 
 macro_rules! include_ast {
     ($name:expr) => {
@@ -52,10 +56,12 @@ const HEAP_SIZE: usize = 64 * 1024;
 static HEAP: Heap = Heap::empty();
 
 bind_interrupts!(struct Irqs {
+    UART0_IRQ => uart::BufferedInterruptHandler<UART0>;
     USBCTRL_IRQ => usb::InterruptHandler<USB>;
 });
 
 const MAX_USB_PACKET_SIZE: usize = 64;
+const UART_BUFFER_SIZE: usize = 400;
 
 #[embassy_executor::task]
 async fn usb_task(mut usb: UsbDevice<'static, usb::Driver<'static, USB>>) {
@@ -75,17 +81,23 @@ async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
     let uart_config = uart::Config::default();
-    let mut uart0 =
-        Uart::new_with_rtscts_blocking(p.UART0, p.PIN_0, p.PIN_1, p.PIN_3, p.PIN_2, uart_config);
+    let mut uart0 = BufferedUart::new(
+        p.UART0,
+        p.PIN_0,
+        p.PIN_1,
+        Irqs,
+        &mut [0; UART_BUFFER_SIZE],
+        &mut [0; UART_BUFFER_SIZE],
+        uart_config,
+    );
 
     // as soon as the UART is up, check if we panicked on the previous boot
     if let Some(msg) = get_panic_message_bytes() {
-        uart0.blocking_write(msg).unwrap();
+        uart0.write_all(msg).await.unwrap();
+        uart0.flush().await.unwrap();
         Timer::after_secs(1).await;
         cortex_m::peripheral::SCB::sys_reset();
     }
-
-    let mut led = gpio::Output::new(p.PIN_25, gpio::Level::Low);
 
     // set up USB
 
@@ -106,37 +118,31 @@ async fn main(spawner: Spawner) {
         leak([0; 64]),
     );
 
-    let (mut usb_sender, _) = CdcAcmClass::new(
+    let serial_class = CdcAcmClass::new(
         &mut usb_builder,
         leak(cdc_acm::State::new()),
         MAX_USB_PACKET_SIZE as u16,
-    )
-    .split();
+    );
 
     let usb = usb_builder.build();
-
     spawner.must_spawn(usb_task(usb));
 
     // build VM
 
-    let mut globals = LVar::create_global_constants();
-    globals.extend([
-        // GPIO pin constants
-        (u16str!("@pinLED").into(), LVar::Constant(25.into())),
-    ]);
+    let (uart0_data, mut uart0_tick) = UartData::new(uart0);
 
-    let gpio_data = Rc::new(RefCell::new(BuildingData::Memory(Box::new([0.; 30]))));
-    let uart0_data = Rc::new(RefCell::new(BuildingData::Message(U16String::new())));
-    let serial_data = Rc::new(RefCell::new(BuildingData::Message(U16String::new())));
+    let (serial_data, serial_task, mut serial_tick) = SerialData::new(serial_class);
+    spawner.must_spawn(serial_task);
 
     let mut builder = LogicVMBuilder::new();
+
     builder.add_buildings([
         Building::from_processor_builder(
             &custom_content::PROCESSOR,
             PackedPoint2 { x: 0, y: 0 },
             ProcessorBuilder {
-                ipt: 1.,
-                privileged: false,
+                ipt: 100.,
+                privileged: true,
                 code: deserialize_ast(AST_BYTES).unwrap().into_boxed_slice(),
                 links: &[
                     ProcessorLinkConfig {
@@ -159,70 +165,66 @@ async fn main(spawner: Spawner) {
             },
             &builder,
         ),
-        Building {
-            block: &custom_content::GPIO,
-            position: PackedPoint2 { x: 1, y: 0 },
-            data: gpio_data.clone(),
-        },
-        Building {
-            block: &custom_content::UART,
-            position: PackedPoint2 { x: 2, y: 0 },
-            data: uart0_data.clone(),
-        },
-        Building {
-            block: &custom_content::SERIAL,
-            position: PackedPoint2 { x: 3, y: 0 },
-            data: serial_data.clone(),
-        },
+        Building::new(
+            &custom_content::GPIO,
+            PackedPoint2 { x: 1, y: 0 },
+            GpioData::new([
+                gpio_data_pin!(p.PIN_2),
+                gpio_data_pin!(p.PIN_3),
+                gpio_data_pin!(p.PIN_4),
+                gpio_data_pin!(p.PIN_5),
+                gpio_data_pin!(p.PIN_6),
+                gpio_data_pin!(p.PIN_7),
+                gpio_data_pin!(p.PIN_8),
+                gpio_data_pin!(p.PIN_9),
+                gpio_data_pin!(p.PIN_10),
+                gpio_data_pin!(p.PIN_11),
+                gpio_data_pin!(p.PIN_12),
+                gpio_data_pin!(p.PIN_13),
+                gpio_data_pin!(p.PIN_14),
+                gpio_data_pin!(p.PIN_15),
+                gpio_data_pin!(p.PIN_16),
+                gpio_data_pin!(p.PIN_17),
+                gpio_data_pin!(p.PIN_18),
+                gpio_data_pin!(p.PIN_19),
+                gpio_data_pin!(p.PIN_20),
+                gpio_data_pin!(p.PIN_21),
+                gpio_data_pin!(p.PIN_22),
+                gpio_data_pin!(p.PIN_25),
+                gpio_data_pin!(p.PIN_26),
+                gpio_data_pin!(p.PIN_27),
+                gpio_data_pin!(p.PIN_28),
+            ])
+            .into(),
+        ),
+        Building::new(
+            &custom_content::UART,
+            PackedPoint2 { x: 2, y: 0 },
+            uart0_data.into(),
+        ),
+        Building::new(
+            &custom_content::SERIAL,
+            PackedPoint2 { x: 3, y: 0 },
+            serial_data.into(),
+        ),
     ]);
+
+    let mut globals = LVar::create_global_constants();
+    globals.extend([
+        // GPIO pin constants
+        (u16str!("@pinLED").into(), LVar::Constant(25.into())),
+    ]);
+
     let vm = builder.build_with_globals(Cow::Owned(globals)).unwrap();
 
     // run!
-
-    let mut usb_connected = false;
 
     let start = Instant::now();
     loop {
         vm.do_tick_with_delta(start.elapsed().into(), 1.0);
 
-        // GPIO outputs
-        if let BuildingData::Memory(memory) = &*gpio_data.borrow() {
-            led.set_level((memory[25] != 0.).into());
-        }
-
-        // printflush uart0
-        if let BuildingData::Message(message) = &mut *uart0_data.borrow_mut()
-            && !message.is_empty()
-        {
-            let mut buf = [0; 4];
-            for c in message.chars_lossy() {
-                uart0
-                    .blocking_write(c.encode_utf8(&mut buf).as_bytes())
-                    .unwrap();
-            }
-            message.clear();
-        }
-
-        // printflush serial
-        let message = if let BuildingData::Message(message) = &mut *serial_data.borrow_mut()
-            && !message.is_empty()
-        {
-            let m = message.to_string_lossy();
-            message.clear();
-            Some(m)
-        } else {
-            None
-        };
-        if let Some(message) = message {
-            if !usb_connected {
-                usb_sender.wait_connection().await;
-                usb_connected = true;
-            }
-            usb_sender.write_all(message.as_bytes()).await.unwrap();
-            if message.len() % MAX_USB_PACKET_SIZE == 0 {
-                usb_sender.write_packet(&[]).await.unwrap();
-            }
-        }
+        uart0_tick().await;
+        serial_tick().await;
 
         // let other threads do things before we continue
         yield_now().await;
