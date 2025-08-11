@@ -1,18 +1,20 @@
 [alias]
+br = "build --release"
+rr = "run --release"
+
 build-pico2 = [
     "build",
     "--target=thumbv8m.main-none-eabihf",
     "--no-default-features",
     "--features=pico2",
 ]
+br2 = "build-pico2 --release"
 run-pico2 = [
     "run",
     "--target=thumbv8m.main-none-eabihf",
     "--no-default-features",
     "--features=pico2",
 ]
-
-rr = "run --release"
 rr2 = "run-pico2 --release"
 
 [build]

@@ -14,7 +14,7 @@ Each file in `src/mlog` has a corresponding Cargo feature to select it. For exam
 
 ```sh
 rustup target add thumbv6m-none-eabi
-cargo install elf2uf2-rs
+cargo install --git https://github.com/object-Object/elf2uf2-rs --rev bbcf7458aa
 cargo run --release --features print_usb  # or: cargo rr -F print_usb
 ```
 
