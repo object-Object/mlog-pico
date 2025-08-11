@@ -22,7 +22,7 @@ cargo run --release --features print_usb  # or: cargo rr -F print_usb
 
 ```sh
 rustup target add thumbv8m.main-none-eabihf
-cargo install --git https://github.com/ninjasource/elf2uf2-rs --branch pico2-support
+cargo install --git https://github.com/object-Object/elf2uf2-rs --rev bbcf7458aa
 cargo run-pico2 --release --features print_usb  # or: cargo rr2 -F print_usb
 ```
 
