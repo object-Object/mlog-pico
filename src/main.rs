@@ -15,6 +15,7 @@ use embassy_rp::{
     bind_interrupts,
     gpio::{self, Pin},
     peripherals::{UART0, USB},
+    rom_data::reset_to_usb_boot,
     uart::{self, BufferedUart},
     usb,
 };
@@ -28,7 +29,7 @@ use embedded_io_async::Write;
 use mindustry_rs::{
     parser::deserialize_ast,
     types::{PackedPoint2, ProcessorLinkConfig},
-    vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder},
+    vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder, instructions::Instruction},
 };
 use panic_persist::get_panic_message_bytes;
 use widestring::u16str;
@@ -160,7 +161,12 @@ async fn main(spawner: Spawner) {
                         y: 0,
                     },
                 ],
-                instruction_hook: None,
+                instruction_hook: Some(Box::new(|instruction, _, _| {
+                    if let Instruction::Stop(_) = instruction {
+                        reset_to_usb_boot(0, 0);
+                    }
+                    None
+                })),
             },
             &builder,
         ),
