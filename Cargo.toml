@@ -39,6 +39,7 @@ pico1 = ["embassy-rp/rp2040"]
 pico2 = ["embassy-rp/rp235xa"]
 
 blink = []
+button_matrix = []
 print = []
 print_usb = []
 

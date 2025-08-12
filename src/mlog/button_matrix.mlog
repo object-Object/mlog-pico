@@ -1,0 +1,50 @@
+# matrix | gpio | function
+# ------ | ---- | --------
+# 1      | 21   | row 0
+# 2      | 20   | row 1
+# 3      | 19   | row 2
+# 4      | 18   | row 3
+# 5      | 17   | col 0
+# 6      | 16   | col 1
+# 7      | 15   | col 2
+# 8      | 14   | col 3
+
+    # pull columns low
+    write 0 gpio 17
+    write 0 gpio 16
+    write 0 gpio 15
+    write 0 gpio 14
+
+    set row 0
+loop_rows:
+    # pull row high
+    op sub row_pin 21 row
+    write 1 gpio row_pin
+
+    set col 0
+loop_cols:
+    # read column
+    op sub col_pin 17 col
+    read value gpio col_pin
+
+    # if column is high, this button is pressed
+    jump not_pressed equal value 0
+
+    op mul button row 4
+    op add button button col
+
+    print button
+    print "\n"
+    printflush serial
+
+    wait 0.25
+not_pressed:
+
+    op add col col 1
+    jump loop_cols lessThan col 4
+
+    # pull row low
+    write 0 gpio row_pin
+
+    op add row row 1
+    jump loop_rows lessThan row 4

@@ -1,4 +1,4 @@
-use embassy_rp::gpio;
+use embassy_rp::gpio::{self, Pull};
 use mindustry_rs::{
     types::LAccess,
     vm::{CustomBuildingData, InstructionResult, LValue, LogicVM, ProcessorState},
@@ -48,6 +48,13 @@ impl CustomBuildingData for GpioData<'_> {
         if let Ok(i) = address.num_usize()
             && let Some(Some(pin)) = self.pins.get_mut(i)
         {
+            pin.set_pull(if value == LValue::NULL {
+                Pull::None
+            } else if value.bool() {
+                Pull::Up
+            } else {
+                Pull::Down
+            });
             pin.set_level(value.bool().into());
             pin.set_as_output();
         }
