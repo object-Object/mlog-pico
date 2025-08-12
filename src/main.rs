@@ -26,11 +26,9 @@ use embassy_usb::{
 use embedded_alloc::TlsfHeap as Heap;
 use embedded_io_async::Write;
 use mindustry_rs::{
-    logic::{
-        deserialize_ast,
-        vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder},
-    },
+    parser::deserialize_ast,
     types::{PackedPoint2, ProcessorLinkConfig},
+    vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder},
 };
 use panic_persist::get_panic_message_bytes;
 use widestring::u16str;

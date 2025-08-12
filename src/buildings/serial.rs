@@ -7,10 +7,8 @@ use embassy_rp::{peripherals::USB, usb};
 use embassy_usb::class::cdc_acm::{self, CdcAcmClass};
 use heapless::Deque;
 use mindustry_rs::{
-    logic::vm::{
-        CustomBuildingData, LValue, LogicVM, ProcessorState, instructions::InstructionResult,
-    },
     types::LAccess,
+    vm::{CustomBuildingData, InstructionResult, LValue, LogicVM, ProcessorState},
 };
 
 use crate::MAX_USB_PACKET_SIZE;

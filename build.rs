@@ -1,7 +1,7 @@
 use std::{env, fs, path::PathBuf};
 
 use glob::glob;
-use mindustry_rs::logic::{LogicParser, parse_and_serialize_ast};
+use mindustry_rs::parser::{LogicParser, parse_and_serialize_ast};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");

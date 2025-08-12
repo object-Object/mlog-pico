@@ -1,9 +1,7 @@
 use embassy_rp::gpio;
 use mindustry_rs::{
-    logic::vm::{
-        CustomBuildingData, LValue, LogicVM, ProcessorState, instructions::InstructionResult,
-    },
     types::LAccess,
+    vm::{CustomBuildingData, InstructionResult, LValue, LogicVM, ProcessorState},
 };
 
 pub struct GpioData<'a> {
