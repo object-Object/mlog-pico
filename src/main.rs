@@ -6,7 +6,7 @@ extern crate alloc;
 mod buildings;
 mod custom_content;
 
-use alloc::{borrow::Cow, boxed::Box};
+use alloc::boxed::Box;
 use core::mem::MaybeUninit;
 
 use embassy_executor::Spawner;
@@ -213,7 +213,7 @@ async fn main(spawner: Spawner) {
         (u16str!("@pinLED").into(), LVar::Constant(25.into())),
     ]);
 
-    let vm = builder.build_with_globals(Cow::Owned(globals)).unwrap();
+    let vm = builder.build_with_globals(&globals).unwrap();
 
     // run!
 

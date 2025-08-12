@@ -1046,7 +1046,7 @@ checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
 [[package]]
 name = "mindustry-rs"
 version = "0.1.0"
-source = "git+https://github.com/object-Object/mindustry-rs?rev=4d583f6433#4d583f64336b730bcc9a90c67d3798ceb94af76c"
+source = "git+https://github.com/object-Object/mindustry-rs?rev=3628eadcd6#3628eadcd6fd1419dad6d96bd4e4b0421cb3b07b"
 dependencies = [
  "base64 0.22.1",
  "binrw",
