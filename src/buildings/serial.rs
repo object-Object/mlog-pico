@@ -1,8 +1,8 @@
 use alloc::{rc::Rc, string::String};
 use core::cell::{Cell, RefCell};
-use embassy_futures::yield_now;
 
 use embassy_executor::SpawnToken;
+use embassy_futures::yield_now;
 use embassy_rp::{peripherals::USB, usb};
 use embassy_usb::class::cdc_acm::{self, CdcAcmClass};
 use heapless::Deque;
