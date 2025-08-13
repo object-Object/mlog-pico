@@ -59,6 +59,7 @@ macro_rules! include_ast {
 include_ast!("blink");
 include_ast!("button_matrix");
 include_ast!("draw");
+include_ast!("mandelbrot");
 include_ast!("print");
 include_ast!("print_usb");
 

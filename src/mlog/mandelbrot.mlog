@@ -1,0 +1,109 @@
+# author: bendn
+draw clear 0 0 0
+set maxIteration 15
+Loop:
+op div mx x 88
+op sub mx mx 1.4
+op div my y 88
+op sub my my 1
+set _MandelbrotPixel_0_x 0
+set _MandelbrotPixel_0_y 0
+set _MandelbrotPixel_0_iteration 0
+_MandelbrotPixel_0_Loop:
+op pow _MandelbrotPixel_0_x2 _MandelbrotPixel_0_x 2
+op pow _MandelbrotPixel_0_y2 _MandelbrotPixel_0_y 2
+jump _MandelbrotPixel_0_ExitLoop greaterThanEq _MandelbrotPixel_0_iteration maxIteration
+op add _MandelbrotPixel_0_temp _MandelbrotPixel_0_x2 _MandelbrotPixel_0_y2
+jump _MandelbrotPixel_0_ExitLoop greaterThan _MandelbrotPixel_0_temp 4
+op sub _MandelbrotPixel_0_xTemp _MandelbrotPixel_0_x2 _MandelbrotPixel_0_y2
+op mul _MandelbrotPixel_0_y _MandelbrotPixel_0_y _MandelbrotPixel_0_x
+op mul _MandelbrotPixel_0_y _MandelbrotPixel_0_y 2
+op add _MandelbrotPixel_0_y _MandelbrotPixel_0_y my
+op add _MandelbrotPixel_0_x _MandelbrotPixel_0_xTemp mx
+op add _MandelbrotPixel_0_iteration _MandelbrotPixel_0_iteration 1
+jump _MandelbrotPixel_0_Loop always
+_MandelbrotPixel_0_ExitLoop:
+op mod _ColorMap_0_c _MandelbrotPixel_0_iteration 360
+jump _ColorMap_0_Black equal _MandelbrotPixel_0_iteration maxIteration
+op mul _HSVtoColor_0_C 1 1
+op sub _HSVtoColor_0_m 1 _HSVtoColor_0_C
+op div _HSVtoColor_0_X _ColorMap_0_c 60
+op mod _HSVtoColor_0_X _HSVtoColor_0_X 2
+op sub _HSVtoColor_0_X _HSVtoColor_0_X 1
+op abs _HSVtoColor_0_X _HSVtoColor_0_X
+op sub _HSVtoColor_0_X 1 _HSVtoColor_0_X
+op mul _HSVtoColor_0_X _HSVtoColor_0_C _HSVtoColor_0_X
+op lessThanEq _HSVtoColor_0_check1 0 _ColorMap_0_c
+op lessThan _HSVtoColor_0_check2 _ColorMap_0_c 60
+op and _HSVtoColor_0_check1 _HSVtoColor_0_check1 _HSVtoColor_0_check2
+jump _HSVtoColor_0_Case1 equal _HSVtoColor_0_check1 true
+op lessThanEq _HSVtoColor_0_check1 60 _ColorMap_0_c
+op lessThan _HSVtoColor_0_check2 _ColorMap_0_c 120
+op and _HSVtoColor_0_check1 _HSVtoColor_0_check1 _HSVtoColor_0_check2
+jump _HSVtoColor_0_Case2 equal _HSVtoColor_0_check1 true
+op lessThanEq _HSVtoColor_0_check1 120 _ColorMap_0_c
+op lessThan _HSVtoColor_0_check2 _ColorMap_0_c 180
+op and _HSVtoColor_0_check1 _HSVtoColor_0_check1 _HSVtoColor_0_check2
+jump _HSVtoColor_0_Case3 equal _HSVtoColor_0_check1 true
+op lessThanEq _HSVtoColor_0_check1 180 _ColorMap_0_c
+op lessThan _HSVtoColor_0_check2 _ColorMap_0_c 240
+op and _HSVtoColor_0_check1 _HSVtoColor_0_check1 _HSVtoColor_0_check2
+jump _HSVtoColor_0_Case4 equal _HSVtoColor_0_check1 true
+op lessThanEq _HSVtoColor_0_check1 240 _ColorMap_0_c
+op lessThan _HSVtoColor_0_check2 _ColorMap_0_c 300
+op and _HSVtoColor_0_check1 _HSVtoColor_0_check1 _HSVtoColor_0_check2
+jump _HSVtoColor_0_Case5 equal _HSVtoColor_0_check1 true
+op lessThanEq _HSVtoColor_0_check1 300 _ColorMap_0_c
+op lessThan _HSVtoColor_0_check2 _ColorMap_0_c 360
+op and _HSVtoColor_0_check1 _HSVtoColor_0_check1 _HSVtoColor_0_check2
+jump _HSVtoColor_0_Case6 equal _HSVtoColor_0_check1 true
+_HSVtoColor_0_Case1:
+set _HSVtoColor_0_R _HSVtoColor_0_C
+set _HSVtoColor_0_G _HSVtoColor_0_X
+set _HSVtoColor_0_B 0
+jump _HSVtoColor_0_Out always
+_HSVtoColor_0_Case2:
+set _HSVtoColor_0_R _HSVtoColor_0_X
+set _HSVtoColor_0_G _HSVtoColor_0_C
+set _HSVtoColor_0_B 0
+jump _HSVtoColor_0_Out always
+_HSVtoColor_0_Case3:
+set _HSVtoColor_0_R 0
+set _HSVtoColor_0_G _HSVtoColor_0_C
+set _HSVtoColor_0_B _HSVtoColor_0_X
+jump _HSVtoColor_0_Out always
+_HSVtoColor_0_Case4:
+set _HSVtoColor_0_R 0
+set _HSVtoColor_0_G _HSVtoColor_0_X
+set _HSVtoColor_0_B _HSVtoColor_0_C
+jump _HSVtoColor_0_Out always
+_HSVtoColor_0_Case5:
+set _HSVtoColor_0_R _HSVtoColor_0_X
+set _HSVtoColor_0_G 0
+set _HSVtoColor_0_B _HSVtoColor_0_C
+jump _HSVtoColor_0_Out always
+_HSVtoColor_0_Case6:
+set _HSVtoColor_0_R _HSVtoColor_0_C
+set _HSVtoColor_0_G 0
+set _HSVtoColor_0_B _HSVtoColor_0_X
+jump _HSVtoColor_0_Out always
+_HSVtoColor_0_Out:
+op add _HSVtoColor_0_R _HSVtoColor_0_R _HSVtoColor_0_m
+op add _HSVtoColor_0_G _HSVtoColor_0_G _HSVtoColor_0_m
+op add _HSVtoColor_0_B _HSVtoColor_0_B _HSVtoColor_0_m
+packcolor outputColor _HSVtoColor_0_R _HSVtoColor_0_G _HSVtoColor_0_B 1
+jump _ColorMap_0_Exit always
+_ColorMap_0_Black:
+set outputColor 0x000000ff
+_ColorMap_0_Exit:
+draw col outputColor
+draw rect x y 1 1
+drawflush display1
+op add x x 1
+jump Loop lessThan x 176
+set x 0
+op add y y 1
+jump Loop lessThan y 176
+set y 0
+End:
+jump End always

@@ -42,6 +42,7 @@ pico2 = ["embassy-rp/rp235xa"]
 blink = []
 button_matrix = []
 draw = []
+mandelbrot = []
 print = []
 print_usb = []
 
