@@ -1,5 +1,5 @@
 [workspace.dependencies]
-mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "3628eadcd6", default-features = false }
+mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "b569cf1ce5", default-features = false }
 # mindustry-rs = { path = "../mindustry-rs", default-features = false }
 
 [package]
@@ -11,18 +11,22 @@ rust-version = "1.88"
 [dependencies]
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7.5"
+embassy-embedded-hal = "0.4.0"
 embassy-executor = { version = "=0.7.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt"] }
 embassy-futures = "0.1.1"
 embassy-rp = { version = "0.6.0", features = ["critical-section-impl", "time-driver"] }
+embassy-sync = "0.7.0"
 embassy-time = "0.4.0"
 embassy-usb = "0.5.0"
 embedded-alloc = "0.6.0"
+embedded-graphics = "0.8.1"
 embedded-hal = "1.0.0"
 embedded-io = { version = "0.6.1", features = ["alloc"] }
 embedded-io-async = { version = "0.6.1", features = ["alloc"] }
 heapless = { version = "0.8.0", features = ["portable-atomic"] }
 log = "0.4.27"
 mindustry-rs = { workspace = true, features = ["no_std", "serde_alloc"] }
+mipidsi = "0.9.0"
 panic-persist = "0.3.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }
 spin = { version = "0.9.8", default-features = false, features = ["portable_atomic"] }
@@ -40,6 +44,7 @@ pico2 = ["embassy-rp/rp235xa"]
 
 blink = []
 button_matrix = []
+draw = []
 print = []
 print_usb = []
 

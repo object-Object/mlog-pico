@@ -1,17 +1,17 @@
-use embassy_rp::gpio::{self, Pull};
+use embassy_rp::gpio::{Flex, Pull};
 use mindustry_rs::{
     types::LAccess,
     vm::{CustomBuildingData, InstructionResult, LValue, LogicVM, ProcessorState},
 };
 
 pub struct GpioData<'a> {
-    pins: [Option<gpio::Flex<'a>>; 30],
+    pins: [Option<Flex<'a>>; 30],
 }
 
 impl<'a> GpioData<'a> {
     pub fn new<T>(values: T) -> Self
     where
-        T: IntoIterator<Item = (usize, gpio::Flex<'a>)>,
+        T: IntoIterator<Item = (usize, Flex<'a>)>,
     {
         let mut pins = [const { None }; 30];
 
@@ -70,8 +70,8 @@ impl CustomBuildingData for GpioData<'_> {
 }
 
 macro_rules! gpio_data_pin {
-    ($p:expr) => {
-        ($p.pin() as usize, gpio::Flex::new($p))
+    ($pin:expr) => {
+        ($pin.pin() as usize, embassy_rp::gpio::Flex::new($pin))
     };
 }
 pub(crate) use gpio_data_pin;

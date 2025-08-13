@@ -28,4 +28,7 @@ runner = "elf2uf2-rs --deploy --serial"
 # pico 2
 [target.thumbv8m.main-none-eabihf]
 # https://github.com/JoNil/elf2uf2-rs/pull/39
+# 0xe48bff59: secure ARM image
+# 0xe48bff5a: RISC-V image
+# 0xe48bff5b: non-secure RISC-V image
 runner = "elf2uf2-rs --deploy --serial --family 0xe48bff59"

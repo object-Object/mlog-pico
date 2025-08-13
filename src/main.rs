@@ -3,38 +3,47 @@
 
 extern crate alloc;
 
-mod buildings;
-mod custom_content;
-
 use alloc::boxed::Box;
-use core::mem::MaybeUninit;
+use core::{cell::RefCell, mem::MaybeUninit};
 
+use embassy_embedded_hal::shared_bus::blocking::spi::SpiDevice;
 use embassy_executor::Spawner;
 use embassy_futures::yield_now;
 use embassy_rp::{
     bind_interrupts,
     gpio::{self, Pin},
     peripherals::{UART0, USB},
-    rom_data::reset_to_usb_boot,
+    spi::{self, Spi},
     uart::{self, BufferedUart},
     usb,
 };
-use embassy_time::{Instant, Timer};
+use embassy_sync::blocking_mutex::{Mutex, raw::NoopRawMutex};
+use embassy_time::{Delay, Instant, Timer};
 use embassy_usb::{
     UsbDevice,
     class::cdc_acm::{self, CdcAcmClass},
 };
 use embedded_alloc::TlsfHeap as Heap;
+use embedded_graphics::draw_target::DrawTarget;
 use embedded_io_async::Write;
 use mindustry_rs::{
     parser::deserialize_ast,
     types::{PackedPoint2, ProcessorLinkConfig},
     vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder, instructions::Instruction},
 };
+use mipidsi::{
+    interface::SpiInterface,
+    models::ST7789,
+    options::{Orientation, Rotation},
+};
 use panic_persist::get_panic_message_bytes;
 use widestring::u16str;
 
-use self::buildings::{GpioData, SerialData, UartData, gpio_data_pin};
+use self::buildings::{DisplayData, GpioData, SerialData, UartData, gpio_data_pin};
+
+mod buildings;
+mod custom_content;
+mod st7789vw;
 
 macro_rules! include_ast {
     ($name:expr) => {
@@ -47,6 +56,7 @@ macro_rules! include_ast {
 
 include_ast!("blink");
 include_ast!("button_matrix");
+include_ast!("draw");
 include_ast!("print");
 include_ast!("print_usb");
 
@@ -118,7 +128,7 @@ async fn main(spawner: Spawner) {
         leak([0; 64]),
     );
 
-    let serial_class = CdcAcmClass::new(
+    let mut serial_class = CdcAcmClass::new(
         &mut usb_builder,
         leak(cdc_acm::State::new()),
         MAX_USB_PACKET_SIZE as u16,
@@ -126,6 +136,54 @@ async fn main(spawner: Spawner) {
 
     let usb = usb_builder.build();
     spawner.must_spawn(usb_task(usb));
+
+    serial_class.wait_connection().await;
+
+    // https://github.com/embassy-rs/embassy/blob/ac46e28c4b4f025279d8974adfb6120c6740e44e/examples/rp/src/bin/spi_display.rs
+    let mut display_config = spi::Config::default();
+    display_config.frequency = 64_000_000;
+    display_config.phase = spi::Phase::CaptureOnSecondTransition;
+    display_config.polarity = spi::Polarity::IdleHigh;
+
+    // st7789v pins
+    let din = p.PIN_11;
+    let clk = p.PIN_10;
+    let cs = p.PIN_9;
+    let dc = p.PIN_8;
+    let rst = p.PIN_12;
+    let bl = p.PIN_13;
+
+    let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(Spi::new_blocking_txonly(
+        p.SPI1,
+        clk,
+        din,
+        display_config,
+    )));
+
+    let display_spi = SpiDevice::new(leak(spi_bus), gpio::Output::new(cs, gpio::Level::High));
+
+    let di = SpiInterface::new(
+        display_spi,
+        gpio::Output::new(dc, gpio::Level::Low),
+        leak([0; 512]),
+    );
+
+    // disable backlight while initializing display so it doesn't show whatever was drawn on the previous boot
+    let bl_pin = bl.pin();
+    let mut bl = gpio::Flex::new(bl);
+    bl.set_level(gpio::Level::Low);
+    bl.set_as_output();
+
+    let mut display = mipidsi::Builder::new(ST7789, di)
+        .display_size(240, 320)
+        .reset_pin(gpio::Output::new(rst, gpio::Level::Low))
+        // flip vertically because ingame displays start at the bottom left instead of top left
+        .orientation(Orientation::new().rotate(Rotation::Deg270).flip_vertical())
+        .init(&mut Delay)
+        .unwrap();
+
+    display.clear(DisplayData::RESET_COLOR.into()).unwrap();
+    bl.set_level(gpio::Level::High);
 
     // build VM
 
@@ -160,10 +218,25 @@ async fn main(spawner: Spawner) {
                         x: 3,
                         y: 0,
                     },
+                    ProcessorLinkConfig {
+                        name: "display1".into(),
+                        x: 4,
+                        y: 0,
+                    },
                 ],
                 instruction_hook: Some(Box::new(|instruction, _, _| {
                     if let Instruction::Stop(_) = instruction {
-                        reset_to_usb_boot(0, 0);
+                        #[cfg(feature = "pico1")]
+                        embassy_rp::rom_data::reset_to_usb_boot(0, 0);
+
+                        #[cfg(feature = "pico2")]
+                        {
+                            // REBOOT_TYPE_BOOTSEL
+                            embassy_rp::rom_data::reboot(0x0002, 100, 0, 0);
+                            loop {
+                                core::hint::spin_loop();
+                            }
+                        }
                     }
                     None
                 })),
@@ -180,12 +253,7 @@ async fn main(spawner: Spawner) {
                 gpio_data_pin!(p.PIN_5),
                 gpio_data_pin!(p.PIN_6),
                 gpio_data_pin!(p.PIN_7),
-                gpio_data_pin!(p.PIN_8),
-                gpio_data_pin!(p.PIN_9),
-                gpio_data_pin!(p.PIN_10),
-                gpio_data_pin!(p.PIN_11),
-                gpio_data_pin!(p.PIN_12),
-                gpio_data_pin!(p.PIN_13),
+                (bl_pin as usize, bl),
                 gpio_data_pin!(p.PIN_14),
                 gpio_data_pin!(p.PIN_15),
                 gpio_data_pin!(p.PIN_16),
@@ -212,11 +280,20 @@ async fn main(spawner: Spawner) {
             PackedPoint2 { x: 3, y: 0 },
             serial_data.into(),
         ),
+        Building::new(
+            &custom_content::ST7789VW_DISPLAY,
+            PackedPoint2 { x: 4, y: 0 },
+            DisplayData::new(display).into(),
+        ),
     ]);
 
     let mut globals = LVar::create_global_constants();
     globals.extend([
         // GPIO pin constants
+        (
+            u16str!("@pinBacklight").into(),
+            LVar::Constant(bl_pin.into()),
+        ),
         (u16str!("@pinLED").into(), LVar::Constant(25.into())),
     ]);
 

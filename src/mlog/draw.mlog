@@ -1,0 +1,26 @@
+draw clear 0 0 0
+draw color 255 255 255 255
+draw stroke 1
+
+sensor x display1 @displayWidth
+op sub x x 168
+op idiv x x 2
+
+sensor y display1 @displayHeight
+op sub y y 180
+op idiv y y 2
+
+draw translate x y
+
+draw rect 0 108 12 72
+draw rect 96 108 12 72
+draw rect 132 108 12 48
+draw rect 0 0 12 72
+draw rect 36 0 12 72
+draw rect 96 0 12 72
+draw rect 120 0 48 12
+
+drawflush display1
+
+wait 10
+stop

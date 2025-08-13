@@ -35,3 +35,9 @@ pub static SERIAL: Block = Block {
     id: -4,
     ..DEFAULT
 };
+
+pub static ST7789VW_DISPLAY: Block = Block {
+    name: multistr!("st7789vw-display"),
+    id: -5,
+    ..DEFAULT
+};
