@@ -28,17 +28,17 @@ impl DisplayData<(), ()> {
 impl<T> DisplayData<T, PrimitiveStyle<T::Color>>
 where
     T: DrawTarget,
-    T::Color: RgbColor + From<Rgb888>,
+    T::Color: From<Rgb888>,
 {
     pub fn new(display: T) -> Self {
         let style = PrimitiveStyleBuilder::new()
-            .stroke_color(RgbColor::WHITE)
+            .stroke_color(Rgb888::WHITE.into())
             .stroke_width(1);
 
         Self {
             display,
             line_style: style.build(),
-            fill_style: style.fill_color(RgbColor::WHITE).build(),
+            fill_style: style.fill_color(Rgb888::WHITE.into()).build(),
             translation: Point::zero(),
             operations: 0,
         }
@@ -161,7 +161,7 @@ where
 impl<T> CustomBuildingData for DisplayData<T, PrimitiveStyle<T::Color>>
 where
     T: DrawTarget,
-    T::Color: RgbColor + From<Rgb888>,
+    T::Color: From<Rgb888>,
     T::Error: Debug,
 {
     fn drawflush(&mut self, state: &mut ProcessorState, _: &LogicVM) -> InstructionResult {
