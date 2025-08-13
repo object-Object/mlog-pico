@@ -33,13 +33,15 @@ use mindustry_rs::{
 };
 use mipidsi::{
     interface::SpiInterface,
-    models::ST7789,
-    options::{Orientation, Rotation},
+    options::{ColorInversion, Orientation, Rotation},
 };
 use panic_persist::get_panic_message_bytes;
 use widestring::u16str;
 
-use self::buildings::{DisplayData, GpioData, SerialData, UartData, gpio_data_pin};
+use self::{
+    buildings::{DisplayData, GpioData, SerialData, UartData, gpio_data_pin},
+    st7789vw::ST7789VW,
+};
 
 mod buildings;
 mod custom_content;
@@ -174,11 +176,12 @@ async fn main(spawner: Spawner) {
     bl.set_level(gpio::Level::Low);
     bl.set_as_output();
 
-    let mut display = mipidsi::Builder::new(ST7789, di)
-        .display_size(240, 320)
+    let mut display = mipidsi::Builder::new(ST7789VW, di)
         .reset_pin(gpio::Output::new(rst, gpio::Level::Low))
         // flip vertically because ingame displays start at the bottom left instead of top left
         .orientation(Orientation::new().rotate(Rotation::Deg270).flip_vertical())
+        // inverted apparently means normal for this display (???)
+        .invert_colors(ColorInversion::Inverted)
         .init(&mut Delay)
         .unwrap();
 

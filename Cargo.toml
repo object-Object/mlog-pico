@@ -1,5 +1,5 @@
 [workspace.dependencies]
-mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "b569cf1ce5", default-features = false }
+mindustry-rs = { git = "https://github.com/object-Object/mindustry-rs", rev = "841e9b3e8f", default-features = false }
 # mindustry-rs = { path = "../mindustry-rs", default-features = false }
 
 [package]
