@@ -39,7 +39,7 @@ use panic_persist::get_panic_message_bytes;
 use widestring::u16str;
 
 use self::{
-    buildings::{DisplayData, GpioData, SerialData, UartData, gpio_data_pin},
+    buildings::{DISPLAY_RESET_COLOR, DisplayData, GpioData, SerialData, UartData, gpio_data_pin},
     st7789vw::ST7789VW,
 };
 
@@ -178,14 +178,13 @@ async fn main(spawner: Spawner) {
 
     let mut display = mipidsi::Builder::new(ST7789VW, di)
         .reset_pin(gpio::Output::new(rst, gpio::Level::Low))
-        // flip vertically because ingame displays start at the bottom left instead of top left
-        .orientation(Orientation::new().rotate(Rotation::Deg270).flip_vertical())
+        .orientation(Orientation::new().rotate(Rotation::Deg270))
         // inverted apparently means normal for this display (???)
         .invert_colors(ColorInversion::Inverted)
         .init(&mut Delay)
         .unwrap();
 
-    display.clear(DisplayData::RESET_COLOR.into()).unwrap();
+    display.clear(DISPLAY_RESET_COLOR.into()).unwrap();
     bl.set_level(gpio::Level::High);
 
     // build VM

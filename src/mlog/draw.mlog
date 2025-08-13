@@ -1,29 +1,123 @@
-draw clear 255 255 255
-draw stroke 1
+    draw reset
+    draw clear 255 255 255
 
-sensor x display1 @displayWidth
-op sub x x 168
-op idiv x x 2
+    # text pixel positions
 
-sensor y display1 @displayHeight
-op sub y y 180
-op idiv y y 2
+    op add ret @counter 1
+    jump draw_text always
+    draw print 16 16 @bottomLeft
 
-draw translate x y
+    draw translate 0 32
+    op add ret @counter 1
+    jump draw_text always
+    draw translate 10 6
+    draw print 16 16 @center
+    draw translate -10 -6
 
-draw col %[black]
-draw rect 0 108 12 72
-draw color 255 0 0 255
-draw rect 96 108 12 72
-draw rect 132 108 12 48
-draw color 0 255 0 255
-draw rect 0 0 12 72
-draw rect 36 0 12 72
-draw color 0 0 255 255
-draw rect 96 0 12 72
-draw rect 120 0 48 12
+    draw translate 0 32
+    op add ret @counter 1
+    jump draw_text always
+    draw translate 21 13
+    draw print 16 16 @topRight
+    draw translate -21 -13
 
-drawflush display1
+    draw reset
 
-wait 10
-stop
+    # display margins
+
+    draw stroke 1
+
+    sensor width display1 @displayWidth
+    sensor height display1 @displayHeight
+
+    draw col %[red]
+    draw line 1 1 64 1
+
+    draw col %[green]
+    draw line 1 1 1 64
+
+    draw col %[black]
+    draw rect 1 1 8 8
+
+    draw col %[white]
+    draw lineRect 1 1 4 4
+
+    draw col %[orange]
+    op sub x1 width 64
+    draw line x1 height width height
+
+    draw col %[blue]
+    op sub y1 height 64
+    draw line width y1 width height
+
+    draw col %[black]
+    op sub x width 9
+    op sub y height 9
+    draw rect x y 8 8
+
+    draw col %[white]
+    op add x x 4
+    op add y y 4
+    draw lineRect x y 4 4
+
+    # standard test image
+
+    op sub x width 168
+    op idiv x x 2
+
+    op sub y height 180
+    op idiv y y 2
+
+    draw translate x y
+
+    draw col %[black]
+    draw rect 0 108 12 72
+    draw color 255 0 0 255
+    draw rect 96 108 12 72
+    draw rect 132 108 12 48
+    draw color 0 255 0 255
+    draw rect 0 0 12 72
+    draw rect 36 0 12 72
+    draw color 0 0 255 255
+    draw rect 96 0 12 72
+    draw rect 120 0 48 12
+
+    draw col %[royal]
+    print "is♥this loss?"
+    draw print 84 90 @center
+
+    drawflush display1
+
+    wait 30
+    stop
+
+draw_text:
+    draw stroke 2
+
+    draw color 190 190 190 255
+    draw rect 16 16 7 13
+
+    draw color 150 150 150 255
+    draw rect 23 16 7 13
+
+    draw color 190 190 190 255
+    draw rect 30 16 7 13
+
+    draw stroke 1
+
+    draw col %[blue]
+    draw line 16 16 16 27
+
+    draw col %[blue]
+    draw line 23 16 23 27
+
+    draw col %[blue]
+    draw line 30 16 30 27
+
+    draw col %[red]
+    draw line 17 26 37 26
+
+    draw col %[black]
+    print "HHj"
+
+    set @counter ret
