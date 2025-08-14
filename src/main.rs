@@ -24,12 +24,14 @@ use embassy_usb::{
     class::cdc_acm::{self, CdcAcmClass},
 };
 use embedded_alloc::TlsfHeap as Heap;
-use embedded_graphics::draw_target::DrawTarget;
 use embedded_io_async::Write;
 use mindy::{
     parser::deserialize_ast,
     types::{PackedPoint2, ProcessorLinkConfig},
-    vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder, instructions::Instruction},
+    vm::{
+        Building, EmbeddedDisplayData, LVar, LogicVMBuilder, ProcessorBuilder,
+        instructions::Instruction,
+    },
 };
 use mipidsi::{
     interface::SpiInterface,
@@ -39,7 +41,7 @@ use panic_persist::get_panic_message_bytes;
 use widestring::u16str;
 
 use self::{
-    buildings::{DISPLAY_RESET_COLOR, DisplayData, GpioData, SerialData, UartData, gpio_data_pin},
+    buildings::{GpioData, SerialData, UartData, gpio_data_pin},
     st7789vw::ST7789VW,
 };
 
@@ -187,7 +189,7 @@ async fn main(spawner: Spawner) {
     bl.set_level(gpio::Level::Low);
     bl.set_as_output();
 
-    let mut display = mipidsi::Builder::new(ST7789VW, di)
+    let display = mipidsi::Builder::new(ST7789VW, di)
         .reset_pin(gpio::Output::new(rst, gpio::Level::Low))
         .orientation(Orientation::new().rotate(Rotation::Deg90))
         // inverted apparently means normal for this display (???)
@@ -195,15 +197,16 @@ async fn main(spawner: Spawner) {
         .init(&mut Delay)
         .unwrap();
 
-    display.clear(DISPLAY_RESET_COLOR.into()).unwrap();
-    bl.set_level(gpio::Level::High);
+    let display_data = EmbeddedDisplayData::new(display, true).unwrap();
 
-    // build VM
+    bl.set_level(gpio::Level::High);
 
     let (uart0_data, mut uart0_tick) = UartData::new(uart0);
 
     let (serial_data, serial_task, mut serial_tick) = SerialData::new(serial_class);
     spawner.must_spawn(serial_task);
+
+    // build VM
 
     let mut builder = LogicVMBuilder::new();
 
@@ -296,7 +299,7 @@ async fn main(spawner: Spawner) {
         Building::new(
             &custom_content::ST7789VW_DISPLAY,
             PackedPoint2 { x: 4, y: 0 },
-            DisplayData::new(display).into(),
+            display_data.into(),
         ),
     ]);
 

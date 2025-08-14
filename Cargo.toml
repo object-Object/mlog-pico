@@ -21,7 +21,7 @@ embedded-io = { version = "0.6.1", features = ["alloc"] }
 embedded-io-async = { version = "0.6.1", features = ["alloc"] }
 heapless = { version = "0.8.0", features = ["portable-atomic"] }
 log = "0.4.27"
-mindy = { git = "https://github.com/object-Object/mindy", default-features = false, features = ["no_std", "serde_alloc"] }
+mindy = { git = "https://github.com/object-Object/mindy", default-features = false, features = ["no_std", "serde_alloc", "embedded_graphics"] }
 mipidsi = "0.9.0"
 panic-persist = "0.3.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }
@@ -29,7 +29,6 @@ spin = { version = "0.9.8", default-features = false, features = ["portable_atom
 widestring = { version = "1.2.0", default-features = false }
 
 [build-dependencies]
-eg-font-converter = { git = "https://github.com/embedded-graphics/bdf" }
 glob = "0.3.2"
 mindy = { git = "https://github.com/object-Object/mindy", features = ["std"] }
 

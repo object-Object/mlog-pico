@@ -1300,7 +1300,7 @@ checksum = "c3c8dda44ff03a2f238717214da50f65d5a53b45cd213a7370424ffdb6fae815"
 [[package]]
 name = "mindy"
 version = "0.1.0"
-source = "git+https://github.com/object-Object/mindy#c2a192c8a55e69f60c6c1e22c90e0512882d4740"
+source = "git+https://github.com/object-Object/mindy#d4d32c9b9699d787ddaf5080664b7998df2deaec"
 dependencies = [
  "base64 0.22.1",
  "binrw",
@@ -1308,6 +1308,8 @@ dependencies = [
  "cesu8",
  "csv",
  "derivative",
+ "eg-font-converter",
+ "embedded-graphics",
  "enum_dispatch",
  "flate2",
  "hashbrown 0.15.5",
@@ -1360,7 +1362,6 @@ version = "0.1.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
- "eg-font-converter",
  "embassy-embedded-hal 0.4.0",
  "embassy-executor",
  "embassy-futures",
