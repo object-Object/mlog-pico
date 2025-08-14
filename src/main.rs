@@ -150,11 +150,21 @@ async fn main(spawner: Spawner) {
 
     // st7789v pins
     let din = p.PIN_11;
-    let clk = p.PIN_10;
-    let cs = p.PIN_9;
-    let dc = p.PIN_8;
+    let clk = p.PIN_14;
+    let cs = p.PIN_13;
+    let dc = p.PIN_10;
     let rst = p.PIN_12;
-    let bl = p.PIN_13;
+    let bl = p.PIN_15;
+
+    /*
+    func | pin | gpio | pin | gp
+    bl   | 23  | any  | 20  | 15
+    rst  | 24  | any  | 16  | 12
+    dc   | 25  | any  | 14  | 10
+    cs   | 26  | CSn  | 17  | 13
+    clk  | 27  | SCK  | 19  | 14
+    din  | 28  | TX   | 15  | 11
+    */
 
     let spi_bus: Mutex<NoopRawMutex, _> = Mutex::new(RefCell::new(Spi::new_blocking_txonly(
         p.SPI1,
@@ -179,7 +189,7 @@ async fn main(spawner: Spawner) {
 
     let mut display = mipidsi::Builder::new(ST7789VW, di)
         .reset_pin(gpio::Output::new(rst, gpio::Level::Low))
-        .orientation(Orientation::new().rotate(Rotation::Deg270))
+        .orientation(Orientation::new().rotate(Rotation::Deg90))
         // inverted apparently means normal for this display (???)
         .invert_colors(ColorInversion::Inverted)
         .init(&mut Delay)
@@ -256,9 +266,9 @@ async fn main(spawner: Spawner) {
                 gpio_data_pin!(p.PIN_5),
                 gpio_data_pin!(p.PIN_6),
                 gpio_data_pin!(p.PIN_7),
+                gpio_data_pin!(p.PIN_8),
+                gpio_data_pin!(p.PIN_9),
                 (bl_pin as usize, bl),
-                gpio_data_pin!(p.PIN_14),
-                gpio_data_pin!(p.PIN_15),
                 gpio_data_pin!(p.PIN_16),
                 gpio_data_pin!(p.PIN_17),
                 gpio_data_pin!(p.PIN_18),
