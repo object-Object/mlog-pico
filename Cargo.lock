@@ -1298,9 +1298,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3c8dda44ff03a2f238717214da50f65d5a53b45cd213a7370424ffdb6fae815"
 
 [[package]]
-name = "mindustry-rs"
+name = "mindy"
 version = "0.1.0"
-source = "git+https://github.com/object-Object/mindustry-rs#417cab5dcd0be5acc3cc76dbec827c79430c204c"
+source = "git+https://github.com/object-Object/mindy#c2a192c8a55e69f60c6c1e22c90e0512882d4740"
 dependencies = [
  "base64 0.22.1",
  "binrw",
@@ -1376,7 +1376,7 @@ dependencies = [
  "glob",
  "heapless 0.8.0",
  "log",
- "mindustry-rs",
+ "mindy",
  "mipidsi",
  "panic-persist",
  "portable-atomic",

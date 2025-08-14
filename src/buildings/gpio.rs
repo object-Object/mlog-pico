@@ -1,5 +1,5 @@
 use embassy_rp::gpio::{Flex, Pull};
-use mindustry_rs::{
+use mindy::{
     types::LAccess,
     vm::{CustomBuildingData, InstructionResult, LValue, LogicVM, ProcessorState},
 };

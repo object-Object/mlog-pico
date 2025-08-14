@@ -6,7 +6,7 @@ use embassy_futures::yield_now;
 use embassy_rp::{peripherals::USB, usb};
 use embassy_usb::class::cdc_acm::{self, CdcAcmClass};
 use heapless::Deque;
-use mindustry_rs::{
+use mindy::{
     types::LAccess,
     vm::{CustomBuildingData, InstructionResult, LValue, LogicVM, ProcessorState},
 };

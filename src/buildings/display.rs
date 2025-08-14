@@ -7,7 +7,7 @@ use embedded_graphics::{
     primitives::{Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Triangle},
     text::{Alignment, Baseline, LineHeight, Text, TextStyleBuilder},
 };
-use mindustry_rs::{
+use mindy::{
     types::LAccess,
     vm::{
         CustomBuildingData, DrawCommand, InstructionResult, LValue, LogicVM, ProcessorState,

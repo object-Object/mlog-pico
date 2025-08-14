@@ -1,4 +1,4 @@
-use mindustry_rs::{multistr, types::content::Block};
+use mindy::{multistr, types::content::Block};
 
 static DEFAULT: Block = Block {
     name: multistr!(""),

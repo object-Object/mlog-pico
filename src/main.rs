@@ -26,7 +26,7 @@ use embassy_usb::{
 use embedded_alloc::TlsfHeap as Heap;
 use embedded_graphics::draw_target::DrawTarget;
 use embedded_io_async::Write;
-use mindustry_rs::{
+use mindy::{
     parser::deserialize_ast,
     types::{PackedPoint2, ProcessorLinkConfig},
     vm::{Building, LVar, LogicVMBuilder, ProcessorBuilder, instructions::Instruction},

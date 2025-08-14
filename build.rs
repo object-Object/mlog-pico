@@ -2,7 +2,7 @@ use std::{env, fs, path::PathBuf};
 
 use eg_font_converter::FontConverter;
 use glob::glob;
-use mindustry_rs::parser::{LogicParser, parse_and_serialize_ast};
+use mindy::parser::{LogicParser, parse_and_serialize_ast};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");

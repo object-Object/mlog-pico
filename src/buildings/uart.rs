@@ -4,7 +4,7 @@ use core::cell::RefCell;
 use embassy_rp::uart::{BufferedUart, BufferedUartRx};
 use embedded_io::{Read, ReadReady};
 use embedded_io_async::Write;
-use mindustry_rs::{
+use mindy::{
     types::LAccess,
     vm::{CustomBuildingData, InstructionResult, LValue, LogicVM, ProcessorState},
 };
